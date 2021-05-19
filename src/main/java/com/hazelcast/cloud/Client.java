@@ -32,11 +32,13 @@ public class Client {
 
         IMap<String, String> map = client.getMap("map");
         Random random = new Random();
+        byte iterationCounter = 0;
         while (true) {
             int randomKey = random.nextInt(100_000);
             map.put("key-" + randomKey, "value-" + randomKey);
             map.get("key-" + random.nextInt(100_000));
-            if (randomKey % 10 == 0) {
+            if (++iterationCounter == 10) {
+                iterationCounter = 0;
                 System.out.println("Current map size: " + map.size());
             }
         }
