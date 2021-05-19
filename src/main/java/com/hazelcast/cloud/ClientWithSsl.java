@@ -41,7 +41,7 @@ public class ClientWithSsl {
 
         IMap<String, String> map = client.getMap("map");
         Random random = new Random();
-        byte iterationCounter = 0;
+        int iterationCounter = 0;
         while (true) {
             int randomKey = random.nextInt(100_000);
             map.put("key-" + randomKey, "value-" + randomKey);
