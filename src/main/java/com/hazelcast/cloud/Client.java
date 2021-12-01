@@ -123,6 +123,15 @@ public class Client {
         System.exit(0);
     }
 
+    /**
+     * This example shows how to work with Hazelcast SQL queries via Maps that contains
+     * JSON serialized values.
+     * - Select single json element data from a Map
+     * - Select data from Map with filtering
+     * - Join data from 2 Maps and select json elements
+     *
+     * @param client - a {@link HazelcastInstance} client.
+     */
     private static void jsonSerializationExample(HazelcastInstance client) {
         createMappingForCountries(client);
 
