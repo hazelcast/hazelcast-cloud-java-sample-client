@@ -223,8 +223,7 @@ public class ClientWithSsl {
             + " OPTIONS ("
             + "     'keyFormat' = 'java',"
             + "     'keyJavaClass' = 'java.lang.Integer',"
-            + "     'valueFormat' = 'compact',"
-            + "     'valueCompactTypeName' = 'city'"
+            + "     'valueFormat' = 'json-flat'"
             + " )";
 
         try (SqlResult rs = client.getSql().execute(mappingSql)) {
