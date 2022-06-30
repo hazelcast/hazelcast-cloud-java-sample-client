@@ -18,30 +18,53 @@ import static com.hazelcast.cloud.model.City.newCity;
 import static com.hazelcast.cloud.model.Country.newCountry;
 
 /**
- * This is boilerplate application that configures client to connect Hazelcast Cloud cluster.
- * <p>
- * See: <a href="https://docs.cloud.hazelcast.com/docs/java-client">https://docs.cloud.hazelcast.com/docs/java-client</a>
+ * This is a boilerplate client application that connects to your Hazelcast Viridian cluster.
+ * See: https://docs.hazelcast.com/cloud/get-started
+ * 
+ * Tag:: comments
+ * Snippets of this code are included as examples in our documentation,
+ * using the tag:: comments.
  */
 public class ClientWithSsl {
 
     public static void main(String[] args) throws Exception {
+        // Configure the client to connect to the cluster.
+        // tag::config[]
         ClassLoader classLoader = ClientWithSsl.class.getClassLoader();
         Properties props = new Properties();
+        // Configure TLS
+        // The client.keystore and client.truststore files are downloaded
+        // into the same directory as this client code.
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
         props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
         props.setProperty("javax.net.ssl.trustStore",
             classLoader.getResource("client.truststore").toURI().getPath());
         props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
+
         ClientConfig config = new ClientConfig();
+        /* Allow the client to resend requests to the cluster.
+         * If the client does not receive a response from the cluster for any reason such as connectivity,
+         * the client will resend the request.
+         * See https://docs.hazelcast.org/docs/latest/javadoc/com/hazelcast/client/config/ClientNetworkConfig.html#setRedoOperation-boolean-
+        */
         config.getNetworkConfig().setRedoOperation(true);
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
+        /* A unique token that maps to the current IP address of the cluster.
+         * Cluster IP addresses may change.
+         * This token allows clients to find out the current IP address
+         * of the cluster and connect to it.
+        */
         config.getNetworkConfig().getCloudConfig()
             .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
             .setEnabled(true);
+        // tag::env[]
+	    // Define which environment to use such as production, uat, or dev
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
+        // end::env[]
         config.setClusterName("YOUR_CLUSTER_NAME");
 
         HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
+        // end::config[]
 
         System.out.println("Connection Successful!");
 
@@ -84,7 +107,7 @@ public class ClientWithSsl {
     private static void sqlExample(HazelcastInstance client) {
 
         System.out.println("Creating a mapping...");
-        // See: https://docs.hazelcast.com/hazelcast/5.0/sql/mapping-to-maps
+        // See: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps
         final String mappingQuery = ""
             + "CREATE OR REPLACE MAPPING cities TYPE IMap"
             + " OPTIONS ("
@@ -171,7 +194,7 @@ public class ClientWithSsl {
     }
 
     private static void createMappingForCountries(HazelcastInstance client) {
-        //see: https://docs.hazelcast.com/hazelcast/5.0/sql/mapping-to-maps#json-objects
+        //see: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps#json-objects
         System.out.println("Creating mapping for countries...");
 
         String mappingSql = ""
@@ -194,7 +217,7 @@ public class ClientWithSsl {
     }
 
     private static void populateCountriesWithMap(HazelcastInstance client) {
-        // see: https://docs.hazelcast.com/hazelcast/5.0/data-structures/creating-a-map#writing-json-to-a-map
+        // see: https://docs.hazelcast.com/hazelcast/latest/data-structures/creating-a-map#writing-json-to-a-map
         System.out.println("Populating 'countries' map with JSON values...");
 
         IMap<String, HazelcastJsonValue> countries = client.getMap("country");
@@ -217,7 +240,7 @@ public class ClientWithSsl {
     }
 
     private static void createMappingForCities(HazelcastInstance client) {
-        //see: https://docs.hazelcast.com/hazelcast/5.0/sql/mapping-to-maps#json-objects
+        //see: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps#json-objects
         System.out.println("Creating mapping for cities...");
 
         String mappingSql = ""
@@ -241,7 +264,7 @@ public class ClientWithSsl {
     }
 
     private static void populateCities(HazelcastInstance client) {
-        // see: https://docs.hazelcast.com/hazelcast/5.0/data-structures/creating-a-map#writing-json-to-a-map
+        // see: https://docs.hazelcast.com/hazelcast/latest/data-structures/creating-a-map#writing-json-to-a-map
         System.out.println("Populating 'city' map with JSON values...");
 
         IMap<Integer, HazelcastJsonValue> cities = client.getMap("city");

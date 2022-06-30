@@ -15,22 +15,41 @@ import com.hazelcast.sql.SqlRow;
 import static com.hazelcast.cloud.model.City.newCity;
 import static com.hazelcast.cloud.model.Country.newCountry;
 
-/**
- * This is boilerplate application that configures client to connect Hazelcast Cloud cluster.
- * <p>
- * See: <a href="https://docs.cloud.hazelcast.com/docs/java-client">https://docs.cloud.hazelcast.com/docs/java-client</a>
+/*
+ * This is a boilerplate client application that connects to your Hazelcast Viridian cluster.
+ * See: https://docs.hazelcast.com/cloud/get-started
+ * 
+ * Snippets of this code are included as examples in our documentation,
+ * using the tag:: comments.
  */
 public class Client {
 
     public static void main(String[] args) {
+        // Configure the client to connect to the cluster.
+        // tag::config[]
         ClientConfig config = new ClientConfig();
+        /* Allow the client to resend requests to the cluster.
+         * If the client does not receive a response from the cluster for any reason such as connectivity,
+         * the client will resend the request.
+         * See https://docs.hazelcast.org/docs/latest/javadoc/com/hazelcast/client/config/ClientNetworkConfig.html#setRedoOperation-boolean-
+        */
         config.getNetworkConfig().setRedoOperation(true);
+        /* The cluster discovery token is a unique token that maps to the current IP address of the cluster.
+         * Cluster IP addresses may change.
+         * This token allows clients to find out the current IP address
+         * of the cluster and connect to it.
+        */
         config.getNetworkConfig().getCloudConfig()
             .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
             .setEnabled(true);
+        // tag::env[]
+	    // Define which environment to use such as production, uat, or dev
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
+        // end::env[]
         config.setClusterName("YOUR_CLUSTER_NAME");
+
         HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
+        // end::config[]
 
         System.out.println("Connection Successful!");
 
