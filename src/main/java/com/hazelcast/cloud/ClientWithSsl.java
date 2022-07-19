@@ -17,7 +17,7 @@ import com.hazelcast.sql.SqlRow;
  * This is boilerplate application that configures client to connect Hazelcast
  * Cloud cluster.
  * <p>
- * See: <a href="https://docs.cloud.hazelcast.com/docs/java-client">https://docs.cloud.hazelcast.com/docs/java-client</a>
+ * See: <a href="https://docs.hazelcast.com/cloud/java-client">https://docs.hazelcast.com/cloud/java-client</a>
  */
 public class ClientWithSsl {
 
@@ -57,8 +57,6 @@ public class ClientWithSsl {
      * @param client - a {@link HazelcastInstance} client.
      */
     private static void mapExample(HazelcastInstance client) {
-        System.out.println("Now the map named 'cities' will be filled with some entries.");
-
         IMap<String, HazelcastJsonValue> cities = client.getMap("cities");
         cities.put("1", City.asJson("United Kingdom", "London", 9_540_576));
         cities.put("2", City.asJson("United Kingdom", "Manchester", 2_770_434));
@@ -81,9 +79,22 @@ public class ClientWithSsl {
      * @param client - a {@link HazelcastInstance} client.
      */
     private static void sqlExample(HazelcastInstance client) {
+        createMappingForCapitals(client);
+
+        clearCapitals(client);
+
+        populateCapitals(client);
+
+        selectAllCapitals(client);
+
+        selectCapitalNames(client);
+    }
+
+    private static void createMappingForCapitals(HazelcastInstance client) {
         System.out.println("Creating a mapping...");
         // See: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps
-        final String mappingQuery = ""
+
+        String mappingQuery = ""
                 + "CREATE OR REPLACE MAPPING capitals TYPE IMap"
                 + " OPTIONS ("
                 + "     'keyFormat' = 'varchar',"
@@ -93,13 +104,17 @@ public class ClientWithSsl {
             System.out.println("The mapping has been created successfully.");
         }
         System.out.println("--------------------");
+    }
 
+    private static void clearCapitals(HazelcastInstance client) {
         System.out.println("Deleting data via SQL...");
         try (SqlResult ignored = client.getSql().execute("DELETE FROM capitals")) {
             System.out.println("The data has been deleted successfully.");
         }
         System.out.println("--------------------");
+    }
 
+    private static void populateCapitals(HazelcastInstance client) {
         System.out.println("Inserting data via SQL...");
         String insertQuery = ""
                 + "INSERT INTO capitals VALUES"
@@ -113,7 +128,9 @@ public class ClientWithSsl {
             System.out.println("The data has been inserted successfully.");
         }
         System.out.println("--------------------");
+    }
 
+    private static void selectAllCapitals(HazelcastInstance client) {
         System.out.println("Retrieving all the data via SQL...");
         try (SqlResult result = client.getSql().execute("SELECT * FROM capitals")) {
 
@@ -124,7 +141,9 @@ public class ClientWithSsl {
             }
         }
         System.out.println("--------------------");
+    }
 
+    private static void selectCapitalNames(HazelcastInstance client) {
         System.out.println("Retrieving the capital name via SQL...");
         try (SqlResult result = client.getSql()
                 .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
@@ -140,9 +159,13 @@ public class ClientWithSsl {
 
     /**
      * This example shows how to work with Hazelcast SQL queries via Maps that
-     * contains JSON serialized values. - Select single json element data from a
-     * Map - Select data from Map with filtering - Join data from 2 Maps and
-     * select json elements
+     * contains JSON serialized values.
+     *
+     * <ul>
+     *     <li>Select single json element data from a Map</li>
+     *     <li>Select data from Map with filtering</li>
+     *     <li>Join data from two Maps and select json elements</li>
+     * </ul>
      *
      * @param client - a {@link HazelcastInstance} client.
      */
