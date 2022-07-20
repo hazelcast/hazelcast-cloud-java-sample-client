@@ -12,6 +12,7 @@ import com.hazelcast.core.HazelcastJsonValue;
 import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
+import com.hazelcast.sql.SqlService;
 
 /**
  * This is boilerplate application that configures client to connect Hazelcast
@@ -30,7 +31,6 @@ public class ClientWithSsl {
                 classLoader.getResource("client.truststore").toURI().getPath());
         props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
         ClientConfig config = new ClientConfig();
-        config.getNetworkConfig().setRedoOperation(true);
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
                 .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
@@ -79,18 +79,20 @@ public class ClientWithSsl {
      * @param client - a {@link HazelcastInstance} client.
      */
     private static void sqlExample(HazelcastInstance client) {
-        createMappingForCapitals(client);
+        SqlService sqlService = client.getSql();
 
-        clearCapitals(client);
+        createMappingForCapitals(sqlService);
 
-        populateCapitals(client);
+        clearCapitals(sqlService);
 
-        selectAllCapitals(client);
+        populateCapitals(sqlService);
 
-        selectCapitalNames(client);
+        selectAllCapitals(sqlService);
+
+        selectCapitalNames(sqlService);
     }
 
-    private static void createMappingForCapitals(HazelcastInstance client) {
+    private static void createMappingForCapitals(SqlService sqlService) {
         System.out.println("Creating a mapping...");
         // See: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps
 
@@ -100,21 +102,21 @@ public class ClientWithSsl {
                 + "     'keyFormat' = 'varchar',"
                 + "     'valueFormat' = 'varchar'"
                 + " )";
-        try (SqlResult ignored = client.getSql().execute(mappingQuery)) {
+        try (SqlResult ignored = sqlService.execute(mappingQuery)) {
             System.out.println("The mapping has been created successfully.");
         }
         System.out.println("--------------------");
     }
 
-    private static void clearCapitals(HazelcastInstance client) {
+    private static void clearCapitals(SqlService sqlService) {
         System.out.println("Deleting data via SQL...");
-        try (SqlResult ignored = client.getSql().execute("DELETE FROM capitals")) {
+        try (SqlResult ignored = sqlService.execute("DELETE FROM capitals")) {
             System.out.println("The data has been deleted successfully.");
         }
         System.out.println("--------------------");
     }
 
-    private static void populateCapitals(HazelcastInstance client) {
+    private static void populateCapitals(SqlService sqlService) {
         System.out.println("Inserting data via SQL...");
         String insertQuery = ""
                 + "INSERT INTO capitals VALUES"
@@ -124,15 +126,15 @@ public class ClientWithSsl {
                 + "('England','London'),"
                 + "('Turkey','Ankara'),"
                 + "('United States','Washington, DC');";
-        try (SqlResult ignored = client.getSql().execute(insertQuery)) {
+        try (SqlResult ignored = sqlService.execute(insertQuery)) {
             System.out.println("The data has been inserted successfully.");
         }
         System.out.println("--------------------");
     }
 
-    private static void selectAllCapitals(HazelcastInstance client) {
+    private static void selectAllCapitals(SqlService sqlService) {
         System.out.println("Retrieving all the data via SQL...");
-        try (SqlResult result = client.getSql().execute("SELECT * FROM capitals")) {
+        try (SqlResult result = sqlService.execute("SELECT * FROM capitals")) {
 
             for (SqlRow row : result) {
                 String country = row.getObject(0);
@@ -143,9 +145,9 @@ public class ClientWithSsl {
         System.out.println("--------------------");
     }
 
-    private static void selectCapitalNames(HazelcastInstance client) {
+    private static void selectCapitalNames(SqlService sqlService) {
         System.out.println("Retrieving the capital name via SQL...");
-        try (SqlResult result = client.getSql()
+        try (SqlResult result = sqlService
                 .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
 
             for (SqlRow row : result) {
@@ -170,22 +172,24 @@ public class ClientWithSsl {
      * @param client - a {@link HazelcastInstance} client.
      */
     private static void jsonSerializationExample(HazelcastInstance client) {
-        createMappingForCountries(client);
+        SqlService sqlService = client.getSql();
+
+        createMappingForCountries(sqlService);
 
         populateCountriesWithMap(client);
 
-        selectAllCountries(client);
+        selectAllCountries(sqlService);
 
-        createMappingForCities(client);
+        createMappingForCities(sqlService);
 
         populateCities(client);
 
-        selectCitiesByCountry(client, "AU");
+        selectCitiesByCountry(sqlService, "AU");
 
-        selectCountriesAndCities(client);
+        selectCountriesAndCities(sqlService);
     }
 
-    private static void createMappingForCountries(HazelcastInstance client) {
+    private static void createMappingForCountries(SqlService sqlService) {
         //see: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps#json-objects
         System.out.println("Creating mapping for countries...");
 
@@ -200,7 +204,7 @@ public class ClientWithSsl {
                 + "     'valueFormat' = 'json-flat'"
                 + " )";
 
-        try (SqlResult ignored = client.getSql().execute(mappingSql)) {
+        try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for countries has been created");
         }
         System.out.println("--------------------");
@@ -220,16 +224,16 @@ public class ClientWithSsl {
         System.out.println("--------------------");
     }
 
-    private static void selectAllCountries(HazelcastInstance client) {
+    private static void selectAllCountries(SqlService sqlService) {
         String sql = "SELECT c.country from country c";
         System.out.println("Select all countries with sql = " + sql);
-        try (SqlResult result = client.getSql().execute(sql)) {
+        try (SqlResult result = sqlService.execute(sql)) {
             result.forEach(row -> System.out.println("country = " + row.getObject("country")));
         }
         System.out.println("--------------------");
     }
 
-    private static void createMappingForCities(HazelcastInstance client) {
+    private static void createMappingForCities(SqlService sqlService) {
         //see: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps#json-objects
         System.out.println("Creating mapping for cities...");
 
@@ -245,7 +249,7 @@ public class ClientWithSsl {
                 + "     'valueFormat' = 'json-flat'"
                 + " )";
 
-        try (SqlResult ignored = client.getSql().execute(mappingSql)) {
+        try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for cities has been created");
         }
         System.out.println("--------------------");
@@ -265,11 +269,11 @@ public class ClientWithSsl {
         System.out.println("--------------------");
     }
 
-    private static void selectCitiesByCountry(HazelcastInstance client, String country) {
+    private static void selectCitiesByCountry(SqlService sqlService, String country) {
         String sql = "SELECT city, population FROM city where country=?";
         System.out.println("--------------------");
         System.out.println("Select city and population with sql = " + sql);
-        try (SqlResult result = client.getSql().execute(sql, country)) {
+        try (SqlResult result = sqlService.execute(sql, country)) {
             result.forEach(row ->
                     System.out.printf("city = %s, population = %s%n", row.getObject("city"), row.getObject("population"))
             );
@@ -277,7 +281,7 @@ public class ClientWithSsl {
         System.out.println("--------------------");
     }
 
-    private static void selectCountriesAndCities(HazelcastInstance client) {
+    private static void selectCountriesAndCities(SqlService sqlService) {
         String sql = ""
                 + "SELECT c.isoCode, c.country, t.city, t.population"
                 + "  FROM country c"
@@ -286,7 +290,7 @@ public class ClientWithSsl {
         System.out.println("Select country and city data in query that joins tables");
         System.out.printf("%4s | %15s | %20s | %15s |%n", "iso", "country", "city", "population");
 
-        try (SqlResult result = client.getSql().execute(sql)) {
+        try (SqlResult result = sqlService.execute(sql)) {
             result.forEach(row -> {
                 System.out.printf("%4s | %15s | %20s | %15s |%n",
                         row.getObject("isoCode"),
