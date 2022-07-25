@@ -1,30 +1,13 @@
 package com.hazelcast.cloud.model;
 
-public class Country {
+import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.org.json.JSONObject;
 
-    private String isoCode;
-    private String country;
-
-    public String getIsoCode() {
-        return isoCode;
-    }
-
-    public void setIsoCode(String isoCode) {
-        this.isoCode = isoCode;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
-    }
-
-    public static Country newCountry(String isoCode, String countryName) {
-        Country country = new Country();
-        country.isoCode = isoCode;
-        country.country = countryName;
-        return country;
+public final class Country {
+    public static HazelcastJsonValue asJson(String isoCode, String country) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("isoCode", isoCode);
+        jsonObject.put("country", country);
+        return new HazelcastJsonValue(jsonObject.toString());
     }
 }
