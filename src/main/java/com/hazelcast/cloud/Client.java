@@ -11,6 +11,8 @@ import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlService;
 
+import java.util.Random;
+
 /**
  * This is boilerplate application that configures client to connect Hazelcast
  * Cloud cluster.
@@ -35,6 +37,8 @@ public class Client {
         //sqlExample(client);
 
         //jsonSerializationExample(client);
+
+        //nonStopMapExample(client);
 
         client.shutdown();
     }
@@ -291,4 +295,26 @@ public class Client {
         System.out.println("--------------------");
     }
 
+    /**
+     * This example shows how to work with Hazelcast maps, where the map is
+     * updated continuously.
+     *
+     * @param client - a {@link HazelcastInstance} client.
+     */
+    private static void nonStopMapExample(HazelcastInstance client) {
+        System.out.println("Now the map named 'map' will be filled with random entries.");
+
+        IMap<String, String> map = client.getMap("map");
+        Random random = new Random();
+        int iterationCounter = 0;
+        while (true) {
+            int randomKey = random.nextInt(100_000);
+            map.put("key-" + randomKey, "value-" + randomKey);
+            map.get("key-" + random.nextInt(100_000));
+            if (++iterationCounter == 10) {
+                iterationCounter = 0;
+                System.out.println("Current map size: " + map.size());
+            }
+        }
+    }
 }

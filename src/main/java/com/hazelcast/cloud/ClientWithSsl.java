@@ -1,6 +1,7 @@
 package com.hazelcast.cloud;
 
 import java.util.Properties;
+import java.util.Random;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
@@ -47,6 +48,8 @@ public class ClientWithSsl {
         //sqlExample(client);
 
         //jsonSerializationExample(client);
+
+        //nonStopMapExample(client);
 
         client.shutdown();
     }
@@ -303,4 +306,26 @@ public class ClientWithSsl {
         System.out.println("--------------------");
     }
 
+    /**
+     * This example shows how to work with Hazelcast maps, where the map is
+     * updated continuously.
+     *
+     * @param client - a {@link HazelcastInstance} client.
+     */
+    private static void nonStopMapExample(HazelcastInstance client) {
+        System.out.println("Now the map named 'map' will be filled with random entries.");
+
+        IMap<String, String> map = client.getMap("map");
+        Random random = new Random();
+        int iterationCounter = 0;
+        while (true) {
+            int randomKey = random.nextInt(100_000);
+            map.put("key-" + randomKey, "value-" + randomKey);
+            map.get("key-" + random.nextInt(100_000));
+            if (++iterationCounter == 10) {
+                iterationCounter = 0;
+                System.out.println("Current map size: " + map.size());
+            }
+        }
+    }
 }
