@@ -19,6 +19,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>com.hazelcast.cloud</groupId>
+                <artifactId>hazelcast-cloud-maven-plugin</artifactId>
+                <version>0.0.1</version>
+                <configuration>
+                    <clusterName>YOUR_CLUSTER_NAME</clusterName>
+                    <apiKey></apiKey>
+                    <apiSecret></apiSecret>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
