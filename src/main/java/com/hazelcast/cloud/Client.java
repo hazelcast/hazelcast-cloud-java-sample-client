@@ -41,6 +41,8 @@ public class Client {
         //nonStopMapExample(client);
 
         client.shutdown();
+
+        System.exit(0);
     }
 
     /**

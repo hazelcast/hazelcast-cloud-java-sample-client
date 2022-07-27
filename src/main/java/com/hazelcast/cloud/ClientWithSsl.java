@@ -52,6 +52,8 @@ public class ClientWithSsl {
         //nonStopMapExample(client);
 
         client.shutdown();
+
+        System.exit(0);
     }
 
     /**
