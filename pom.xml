@@ -23,6 +23,7 @@
                 <artifactId>hazelcast-cloud-maven-plugin</artifactId>
                 <version>0.0.1</version>
                 <configuration>
+                    <apiBaseUrl>API_BASE_URL</apiBaseUrl>
                     <clusterName>YOUR_CLUSTER_NAME</clusterName>
                     <apiKey></apiKey>
                     <apiSecret></apiSecret>
