@@ -1,17 +1,16 @@
 package com.hazelcast.cloud;
 
+import java.util.Random;
+
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cloud.model.City;
 import com.hazelcast.cloud.model.Country;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.HazelcastJsonValue;
 import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlService;
-
-import java.util.Random;
 
 /**
  * This is boilerplate application that configures client to connect Hazelcast
@@ -24,8 +23,8 @@ public class Client {
     public static void main(String[] args) {
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
-                .setEnabled(true);
+            .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
+            .setEnabled(true);
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
         config.setClusterName("YOUR_CLUSTER_NAME");
         HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
@@ -36,7 +35,7 @@ public class Client {
 
         //sqlExample(client);
 
-        //jsonSerializationExample(client);
+        //compactSerializationExample(client);
 
         //nonStopMapExample(client);
 
@@ -51,15 +50,15 @@ public class Client {
      * @param client - a {@link HazelcastInstance} client.
      */
     private static void mapExample(HazelcastInstance client) {
-        IMap<String, HazelcastJsonValue> cities = client.getMap("cities");
-        cities.put("1", City.asJson("United Kingdom", "London", 9_540_576));
-        cities.put("2", City.asJson("United Kingdom", "Manchester", 2_770_434));
-        cities.put("3", City.asJson("United States", "New York", 19_223_191));
-        cities.put("4", City.asJson("United States", "Los Angeles", 3_985_520));
-        cities.put("5", City.asJson("Turkey", "Ankara", 5_309_690));
-        cities.put("6", City.asJson("Turkey", "Istanbul", 15_636_243));
-        cities.put("7", City.asJson("Brazil", "Sao Paulo", 22_429_800));
-        cities.put("8", City.asJson("Brazil", "Rio de Janeiro", 13_634_274));
+        IMap<String, City> cities = client.getMap("cities");
+        cities.put("1", new City("United Kingdom", "London", 9_540_576));
+        cities.put("2", new City("United Kingdom", "Manchester", 2_770_434));
+        cities.put("3", new City("United States", "New York", 19_223_191));
+        cities.put("4", new City("United States", "Los Angeles", 3_985_520));
+        cities.put("5", new City("Turkey", "Ankara", 5_309_690));
+        cities.put("6", new City("Turkey", "Istanbul", 15_636_243));
+        cities.put("7", new City("Brazil", "Sao Paulo", 22_429_800));
+        cities.put("8", new City("Brazil", "Rio de Janeiro", 13_634_274));
 
         int mapSize = cities.size();
         System.out.printf("'cities' map now contains %d entries.\n", mapSize);
@@ -87,47 +86,54 @@ public class Client {
     }
 
     private static void createMappingForCapitals(SqlService sqlService) {
+        // See: https://docs.hazelcast.com/hazelcast/5.2-snapshot/sql/mapping-to-maps#creating-a-mapping-to-a-map
         System.out.println("Creating a mapping...");
-        // See: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps
 
         String mappingQuery = ""
-                + "CREATE OR REPLACE MAPPING capitals TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'varchar',"
-                + "     'valueFormat' = 'varchar'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING capitals TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'varchar',"
+            + "     'valueFormat' = 'varchar'"
+            + " )";
         try (SqlResult ignored = sqlService.execute(mappingQuery)) {
             System.out.println("The mapping has been created successfully.");
         }
+
         System.out.println("--------------------");
     }
 
     private static void clearCapitals(SqlService sqlService) {
         System.out.println("Deleting data via SQL...");
+
         try (SqlResult ignored = sqlService.execute("DELETE FROM capitals")) {
             System.out.println("The data has been deleted successfully.");
         }
+
         System.out.println("--------------------");
     }
 
     private static void populateCapitals(SqlService sqlService) {
         System.out.println("Inserting data via SQL...");
+
         String insertQuery = ""
-                + "INSERT INTO capitals VALUES"
-                + "('Australia','Canberra'),"
-                + "('Croatia','Zagreb'),"
-                + "('Czech Republic','Prague'),"
-                + "('England','London'),"
-                + "('Turkey','Ankara'),"
-                + "('United States','Washington, DC');";
+            + "INSERT INTO capitals VALUES"
+            + "('Australia','Canberra'),"
+            + "('Croatia','Zagreb'),"
+            + "('Czech Republic','Prague'),"
+            + "('England','London'),"
+            + "('Turkey','Ankara'),"
+            + "('United States','Washington, DC');";
+
         try (SqlResult ignored = sqlService.execute(insertQuery)) {
             System.out.println("The data has been inserted successfully.");
         }
+
         System.out.println("--------------------");
     }
 
     private static void selectAllCapitals(SqlService sqlService) {
         System.out.println("Retrieving all the data via SQL...");
+
         try (SqlResult result = sqlService.execute("SELECT * FROM capitals")) {
 
             for (SqlRow row : result) {
@@ -136,13 +142,15 @@ public class Client {
                 System.out.printf("%s - %s\n", country, city);
             }
         }
+
         System.out.println("--------------------");
     }
 
     private static void selectCapitalNames(SqlService sqlService) {
         System.out.println("Retrieving the capital name via SQL...");
+
         try (SqlResult result = sqlService
-                .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
+            .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
 
             for (SqlRow row : result) {
                 String country = row.getObject("__key");
@@ -150,22 +158,23 @@ public class Client {
                 System.out.printf("Country name: %s; Capital name: %s\n", country, city);
             }
         }
+
         System.out.println("--------------------");
     }
 
     /**
      * This example shows how to work with Hazelcast SQL queries via Maps that
-     * contains JSON serialized values.
+     * contains compact serialized values.
      *
      * <ul>
-     *     <li>Select single json element data from a Map</li>
+     *     <li>Select single element from a Map</li>
      *     <li>Select data from Map with filtering</li>
-     *     <li>Join data from two Maps and select json elements</li>
+     *     <li>Join data from two Maps</li>
      * </ul>
      *
      * @param client - a {@link HazelcastInstance} client.
      */
-    private static void jsonSerializationExample(HazelcastInstance client) {
+    private static void compactSerializationExample(HazelcastInstance client) {
         SqlService sqlService = client.getSql();
 
         createMappingForCountries(sqlService);
@@ -184,35 +193,37 @@ public class Client {
     }
 
     private static void createMappingForCountries(SqlService sqlService) {
-        //see: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps#json-objects
+        // See: https://docs.hazelcast.com/hazelcast/5.2-snapshot/sql/mapping-to-maps#compact-objects
         System.out.println("Creating mapping for countries...");
 
         String mappingSql = ""
-                + "CREATE OR REPLACE MAPPING country("
-                + "     __key VARCHAR,"
-                + "     isoCode VARCHAR,"
-                + "     country VARCHAR"
-                + ") TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'varchar',"
-                + "     'valueFormat' = 'json-flat'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING country("
+            + "     __key VARCHAR,"
+            + "     isoCode VARCHAR,"
+            + "     country VARCHAR"
+            + ") TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'varchar',"
+            + "     'valueFormat' = 'compact',"
+            + "     'valueCompactTypeName' = 'country'"
+            + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for countries has been created");
         }
+
         System.out.println("--------------------");
     }
 
     private static void populateCountriesWithMap(HazelcastInstance client) {
-        // see: https://docs.hazelcast.com/hazelcast/5.1/data-structures/creating-a-map#writing-json-to-a-map
-        System.out.println("Populating 'countries' map with JSON values...");
+        // See: https://docs.hazelcast.com/hazelcast/5.2-snapshot/data-structures/creating-a-map
+        System.out.println("Populating 'countries' map...");
 
-        IMap<String, HazelcastJsonValue> countries = client.getMap("country");
-        countries.put("AU", Country.asJson("AU", "Australia"));
-        countries.put("EN", Country.asJson("EN", "England"));
-        countries.put("US", Country.asJson("US", "United States"));
-        countries.put("CZ", Country.asJson("CZ", "Czech Republic"));
+        IMap<String, Country> countries = client.getMap("country");
+        countries.put("AU", new Country("AU", "Australia"));
+        countries.put("EN", new Country("EN", "England"));
+        countries.put("US", new Country("US", "United States"));
+        countries.put("CZ", new Country("CZ", "Czech Republic"));
 
         System.out.println("The 'countries' map has been populated.");
         System.out.println("--------------------");
@@ -228,20 +239,21 @@ public class Client {
     }
 
     private static void createMappingForCities(SqlService sqlService) {
-        //see: https://docs.hazelcast.com/hazelcast/5.1/sql/mapping-to-maps#json-objects
+        // See: https://docs.hazelcast.com/hazelcast/5.2-snapshot/sql/mapping-to-maps#compact-objects
         System.out.println("Creating mapping for cities...");
 
         String mappingSql = ""
-                + "CREATE OR REPLACE MAPPING city("
-                + " __key INT ,"
-                + " country VARCHAR ,"
-                + " city VARCHAR,"
-                + " population BIGINT)"
-                + " TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'int',"
-                + "     'valueFormat' = 'json-flat'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING city("
+            + " __key INT ,"
+            + " country VARCHAR ,"
+            + " city VARCHAR,"
+            + " population INT)"
+            + " TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'int',"
+            + "     'valueFormat' = 'compact',"
+            + "     'valueCompactTypeName' = 'city'"
+            + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for cities has been created");
@@ -250,14 +262,14 @@ public class Client {
     }
 
     private static void populateCities(HazelcastInstance client) {
-        // see: https://docs.hazelcast.com/hazelcast/5.1/data-structures/creating-a-map#writing-json-to-a-map
-        System.out.println("Populating 'city' map with JSON values...");
+        // See: https://docs.hazelcast.com/hazelcast/5.2-snapshot/data-structures/creating-a-map
+        System.out.println("Populating 'city' map");
 
-        IMap<Integer, HazelcastJsonValue> cities = client.getMap("city");
-        cities.put(1, City.asJson("AU", "Canberra", 467_194));
-        cities.put(2, City.asJson("CZ", "Prague", 1_318_085));
-        cities.put(3, City.asJson("EN", "London", 9_540_576));
-        cities.put(4, City.asJson("US", "Washington, DC", 7_887_965));
+        IMap<Integer, City> cities = client.getMap("city");
+        cities.put(1, new City("AU", "Canberra", 467_194));
+        cities.put(2, new City("CZ", "Prague", 1_318_085));
+        cities.put(3, new City("EN", "London", 9_540_576));
+        cities.put(4, new City("US", "Washington, DC", 7_887_965));
 
         System.out.println("The 'city' map has been populated.");
         System.out.println("--------------------");
@@ -266,20 +278,22 @@ public class Client {
     private static void selectCitiesByCountry(SqlService sqlService, String country) {
         String sql = "SELECT city, population FROM city where country=?";
         System.out.println("--------------------");
+
         System.out.println("Select city and population with sql = " + sql);
         try (SqlResult result = sqlService.execute(sql, country)) {
             result.forEach(row ->
-                    System.out.printf("city = %s, population = %s%n", row.getObject("city"), row.getObject("population"))
+                System.out.printf("city = %s, population = %s%n", row.getObject("city"), row.getObject("population"))
             );
         }
+
         System.out.println("--------------------");
     }
 
     private static void selectCountriesAndCities(SqlService sqlService) {
         String sql = ""
-                + "SELECT c.isoCode, c.country, t.city, t.population"
-                + "  FROM country c"
-                + "       JOIN city t ON c.isoCode = t.country";
+            + "SELECT c.isoCode, c.country, t.city, t.population"
+            + "  FROM country c"
+            + "       JOIN city t ON c.isoCode = t.country";
 
         System.out.println("Select country and city data in query that joins tables");
         System.out.printf("%4s | %15s | %20s | %15s |%n", "iso", "country", "city", "population");
@@ -287,13 +301,14 @@ public class Client {
         try (SqlResult result = sqlService.execute(sql)) {
             result.forEach(row -> {
                 System.out.printf("%4s | %15s | %20s | %15s |%n",
-                        row.getObject("isoCode"),
-                        row.getObject("country"),
-                        row.getObject("city"),
-                        row.getObject("population")
+                    row.getObject("isoCode"),
+                    row.getObject("country"),
+                    row.getObject("city"),
+                    row.getObject("population")
                 );
             });
         }
+
         System.out.println("--------------------");
     }
 
