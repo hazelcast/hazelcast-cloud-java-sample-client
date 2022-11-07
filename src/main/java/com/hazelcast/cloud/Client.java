@@ -2,10 +2,16 @@ package com.hazelcast.cloud;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.cloud.jobs.UpperCaseFunction;
 import com.hazelcast.cloud.model.City;
 import com.hazelcast.cloud.model.Country;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.jet.config.JobConfig;
+import com.hazelcast.jet.pipeline.BatchSource;
+import com.hazelcast.jet.pipeline.Pipeline;
+import com.hazelcast.jet.pipeline.Sinks;
+import com.hazelcast.jet.pipeline.test.TestSources;
 import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
@@ -39,6 +45,8 @@ public class Client {
         //jsonSerializationExample(client);
 
         //nonStopMapExample(client);
+
+        //jetJobExample(client);
 
         client.shutdown();
 
@@ -318,5 +326,33 @@ public class Client {
                 System.out.println("Current map size: " + map.size());
             }
         }
+    }
+
+    /**
+     * This example shows how to submit simple Jet job which uses logger as a sink.
+     * You will be able to see the results of job execution in the Hazelcast cluster logs.
+     *
+     * @param client- a {@link HazelcastInstance} client.
+     */
+    private static void jetJobExample(HazelcastInstance client) {
+        // See: https://docs.hazelcast.com/hazelcast/5.2/pipelines/submitting-jobs
+        System.out.println("Submitting Jet job");
+
+        BatchSource<String> items = TestSources.items(
+            "United States", "Turkey", "United Kingdom", "Poland", "Ukraine"
+        );
+
+        Pipeline pipeline = Pipeline.create()
+            .readFrom(items)
+            .map(new UpperCaseFunction())
+            .writeTo(Sinks.logger())
+            .getPipeline();
+
+        JobConfig jobConfig = new JobConfig()
+            .addClass(UpperCaseFunction.class);
+
+        client.getJet().newJob(pipeline, jobConfig);
+
+        System.out.println("Jet job submitted");
     }
 }

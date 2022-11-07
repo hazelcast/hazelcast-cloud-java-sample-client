@@ -5,11 +5,17 @@ import java.util.Random;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.cloud.jobs.UpperCaseFunction;
 import com.hazelcast.cloud.model.City;
 import com.hazelcast.cloud.model.Country;
 import com.hazelcast.config.SSLConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.jet.config.JobConfig;
+import com.hazelcast.jet.pipeline.BatchSource;
+import com.hazelcast.jet.pipeline.Pipeline;
+import com.hazelcast.jet.pipeline.Sinks;
+import com.hazelcast.jet.pipeline.test.TestSources;
 import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
@@ -29,13 +35,13 @@ public class ClientWithSsl {
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
         props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
         props.setProperty("javax.net.ssl.trustStore",
-                classLoader.getResource("client.truststore").toURI().getPath());
+            classLoader.getResource("client.truststore").toURI().getPath());
         props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
-                .setEnabled(true);
+            .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
+            .setEnabled(true);
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
         config.setClusterName("YOUR_CLUSTER_NAME");
 
@@ -50,6 +56,8 @@ public class ClientWithSsl {
         //jsonSerializationExample(client);
 
         //nonStopMapExample(client);
+
+        //jetJobExample(client);
 
         client.shutdown();
 
@@ -329,5 +337,33 @@ public class ClientWithSsl {
                 System.out.println("Current map size: " + map.size());
             }
         }
+    }
+
+    /**
+     * This example shows how to submit simple Jet job which uses logger as a sink.
+     * You will be able to see the results of job execution in the Hazelcast cluster logs.
+     *
+     * @param client- a {@link HazelcastInstance} client.
+     */
+    private static void jetJobExample(HazelcastInstance client) {
+        // See: https://docs.hazelcast.com/hazelcast/5.2/pipelines/submitting-jobs
+        System.out.println("Submitting Jet job");
+
+        BatchSource<String> items = TestSources.items(
+            "United States", "Turkey", "United Kingdom", "Poland", "Ukraine"
+        );
+
+        Pipeline pipeline = Pipeline.create()
+            .readFrom(items)
+            .map(new UpperCaseFunction())
+            .writeTo(Sinks.logger())
+            .getPipeline();
+
+        JobConfig jobConfig = new JobConfig()
+            .addClass(UpperCaseFunction.class);
+
+        client.getJet().newJob(pipeline, jobConfig);
+
+        System.out.println("Jet job submitted");
     }
 }
