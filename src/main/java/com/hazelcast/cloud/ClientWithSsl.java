@@ -5,11 +5,17 @@ import java.util.Random;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.cloud.jobs.UpperCaseFunction;
 import com.hazelcast.cloud.model.City;
 import com.hazelcast.cloud.model.Country;
 import com.hazelcast.config.SSLConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastJsonValue;
+import com.hazelcast.jet.config.JobConfig;
+import com.hazelcast.jet.pipeline.BatchSource;
+import com.hazelcast.jet.pipeline.Pipeline;
+import com.hazelcast.jet.pipeline.Sinks;
+import com.hazelcast.jet.pipeline.test.TestSources;
 import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
@@ -29,13 +35,13 @@ public class ClientWithSsl {
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
         props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
         props.setProperty("javax.net.ssl.trustStore",
-                classLoader.getResource("client.truststore").toURI().getPath());
+            classLoader.getResource("client.truststore").toURI().getPath());
         props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
-                .setEnabled(true);
+            .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
+            .setEnabled(true);
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
         config.setClusterName("YOUR_CLUSTER_NAME");
 
@@ -50,6 +56,8 @@ public class ClientWithSsl {
         //jsonSerializationExample(client);
 
         //nonStopMapExample(client);
+
+        //jetJobExample(client);
 
         client.shutdown();
 
@@ -102,11 +110,11 @@ public class ClientWithSsl {
         // See: https://docs.hazelcast.com/hazelcast/5.0/sql/mapping-to-maps
 
         String mappingQuery = ""
-                + "CREATE OR REPLACE MAPPING capitals TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'varchar',"
-                + "     'valueFormat' = 'varchar'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING capitals TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'varchar',"
+            + "     'valueFormat' = 'varchar'"
+            + " )";
         try (SqlResult ignored = sqlService.execute(mappingQuery)) {
             System.out.println("The mapping has been created successfully.");
         }
@@ -124,13 +132,13 @@ public class ClientWithSsl {
     private static void populateCapitals(SqlService sqlService) {
         System.out.println("Inserting data via SQL...");
         String insertQuery = ""
-                + "INSERT INTO capitals VALUES"
-                + "('Australia','Canberra'),"
-                + "('Croatia','Zagreb'),"
-                + "('Czech Republic','Prague'),"
-                + "('England','London'),"
-                + "('Turkey','Ankara'),"
-                + "('United States','Washington, DC');";
+            + "INSERT INTO capitals VALUES"
+            + "('Australia','Canberra'),"
+            + "('Croatia','Zagreb'),"
+            + "('Czech Republic','Prague'),"
+            + "('England','London'),"
+            + "('Turkey','Ankara'),"
+            + "('United States','Washington, DC');";
         try (SqlResult ignored = sqlService.execute(insertQuery)) {
             System.out.println("The data has been inserted successfully.");
         }
@@ -153,7 +161,7 @@ public class ClientWithSsl {
     private static void selectCapitalNames(SqlService sqlService) {
         System.out.println("Retrieving the capital name via SQL...");
         try (SqlResult result = sqlService
-                .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
+            .execute("SELECT __key, this FROM capitals WHERE __key = ?", "United States")) {
 
             for (SqlRow row : result) {
                 String country = row.getObject("__key");
@@ -199,15 +207,15 @@ public class ClientWithSsl {
         System.out.println("Creating mapping for countries...");
 
         String mappingSql = ""
-                + "CREATE OR REPLACE MAPPING country("
-                + "     __key VARCHAR,"
-                + "     isoCode VARCHAR,"
-                + "     country VARCHAR"
-                + ") TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'varchar',"
-                + "     'valueFormat' = 'json-flat'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING country("
+            + "     __key VARCHAR,"
+            + "     isoCode VARCHAR,"
+            + "     country VARCHAR"
+            + ") TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'varchar',"
+            + "     'valueFormat' = 'json-flat'"
+            + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for countries has been created");
@@ -243,16 +251,16 @@ public class ClientWithSsl {
         System.out.println("Creating mapping for cities...");
 
         String mappingSql = ""
-                + "CREATE OR REPLACE MAPPING city("
-                + " __key INT ,"
-                + " country VARCHAR ,"
-                + " city VARCHAR,"
-                + " population BIGINT)"
-                + " TYPE IMap"
-                + " OPTIONS ("
-                + "     'keyFormat' = 'int',"
-                + "     'valueFormat' = 'json-flat'"
-                + " )";
+            + "CREATE OR REPLACE MAPPING city("
+            + " __key INT ,"
+            + " country VARCHAR ,"
+            + " city VARCHAR,"
+            + " population BIGINT)"
+            + " TYPE IMap"
+            + " OPTIONS ("
+            + "     'keyFormat' = 'int',"
+            + "     'valueFormat' = 'json-flat'"
+            + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.println("Mapping for cities has been created");
@@ -280,7 +288,7 @@ public class ClientWithSsl {
         System.out.println("Select city and population with sql = " + sql);
         try (SqlResult result = sqlService.execute(sql, country)) {
             result.forEach(row ->
-                    System.out.printf("city = %s, population = %s%n", row.getObject("city"), row.getObject("population"))
+                System.out.printf("city = %s, population = %s%n", row.getObject("city"), row.getObject("population"))
             );
         }
         System.out.println("--------------------");
@@ -288,9 +296,9 @@ public class ClientWithSsl {
 
     private static void selectCountriesAndCities(SqlService sqlService) {
         String sql = ""
-                + "SELECT c.isoCode, c.country, t.city, t.population"
-                + "  FROM country c"
-                + "       JOIN city t ON c.isoCode = t.country";
+            + "SELECT c.isoCode, c.country, t.city, t.population"
+            + "  FROM country c"
+            + "       JOIN city t ON c.isoCode = t.country";
 
         System.out.println("Select country and city data in query that joins tables");
         System.out.printf("%4s | %15s | %20s | %15s |%n", "iso", "country", "city", "population");
@@ -298,10 +306,10 @@ public class ClientWithSsl {
         try (SqlResult result = sqlService.execute(sql)) {
             result.forEach(row -> {
                 System.out.printf("%4s | %15s | %20s | %15s |%n",
-                        row.getObject("isoCode"),
-                        row.getObject("country"),
-                        row.getObject("city"),
-                        row.getObject("population")
+                    row.getObject("isoCode"),
+                    row.getObject("country"),
+                    row.getObject("city"),
+                    row.getObject("population")
                 );
             });
         }
@@ -329,5 +337,33 @@ public class ClientWithSsl {
                 System.out.println("Current map size: " + map.size());
             }
         }
+    }
+
+    /**
+     * This example shows how to submit simple Jet job which uses logger as a sink.
+     * You will be able to see the results of job execution in the Hazelcast cluster logs.
+     *
+     * @param client- a {@link HazelcastInstance} client.
+     */
+    private static void jetJobExample(HazelcastInstance client) {
+        // See: https://docs.hazelcast.com/hazelcast/5.0/pipelines/submitting-jobs
+        System.out.println("Submitting Jet job");
+
+        BatchSource<String> items = TestSources.items(
+            "United States", "Turkey", "United Kingdom", "Poland", "Ukraine"
+        );
+
+        Pipeline pipeline = Pipeline.create()
+            .readFrom(items)
+            .map(new UpperCaseFunction())
+            .writeTo(Sinks.logger())
+            .getPipeline();
+
+        JobConfig jobConfig = new JobConfig()
+            .addClass(UpperCaseFunction.class);
+
+        client.getJet().newJob(pipeline, jobConfig);
+
+        System.out.println("Jet job submitted");
     }
 }
