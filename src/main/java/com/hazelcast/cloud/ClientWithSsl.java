@@ -4,8 +4,8 @@ import java.util.Properties;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cloud.jobs.UpperCaseFunction;
-import com.hazelcast.cloud.model.User;
-import com.hazelcast.cloud.model.UserSerializer;
+import com.hazelcast.cloud.model.City;
+import com.hazelcast.cloud.model.CitySerializer;
 import com.hazelcast.config.SSLConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.jet.config.JobConfig;
@@ -43,7 +43,7 @@ public class ClientWithSsl {
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
         config.setClusterName("YOUR_CLUSTER_NAME");
 
-        config.getSerializationConfig().getCompactSerializationConfig().addSerializer(new UserSerializer());
+        config.getSerializationConfig().getCompactSerializationConfig().addSerializer(new CitySerializer());
 
         System.out.println("Connect Hazelcast Viridian with TLS");
         HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
@@ -51,8 +51,8 @@ public class ClientWithSsl {
 
         try {
             createMapping(client.getSql());
-            insertUsers(client);
-            fetchUsersWithSQL(client.getSql());
+            insertCities(client);
+            fetchCitiesWithSQL(client.getSql());
             jetJobExample(client);
         }
         catch (Exception ex) {
@@ -65,18 +65,19 @@ public class ClientWithSsl {
 
     private static void createMapping(SqlService sqlService) {
         // See: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps#compact-objects
-        System.out.println("Creating mapping for users...");
+        System.out.println("Creating mapping for cities...");
 
         String mappingSql = ""
-            + "CREATE OR REPLACE MAPPING users("
+            + "CREATE OR REPLACE MAPPING cities("
             + "     __key INT,"
-            + "     name VARCHAR,"
-            + "     country VARCHAR"
+            + "     country VARCHAR,"
+            + "     city VARCHAR,"
+            + "     population INT"
             + ") TYPE IMap"
             + " OPTIONS ("
             + "     'keyFormat' = 'int',"
             + "     'valueFormat' = 'compact',"
-            + "     'valueCompactTypeName' = 'user'"
+            + "     'valueCompactTypeName' = 'city'"
             + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
@@ -84,16 +85,18 @@ public class ClientWithSsl {
         }
     }
 
-    private static void insertUsers(HazelcastInstance client){
-        System.out.print("\nInserting users into 'users' map...");
+    private static void insertCities(HazelcastInstance client){
+        System.out.print("\nInserting cities into 'cities' map...");
 
-        String insertQuery = "INSERT INTO users "
-                +"(__key, name, country) VALUES"
-                +"(1, 'Emre', 'Türkiye'),"
-                +"(2, 'Aika', 'Japan'),"
-                +"(3, 'John', 'United States'),"
-                +"(4, 'Olivia', 'United Kingdom'),"
-                +"(5, 'Jonas', 'Germany')";
+        String insertQuery = "INSERT INTO cities "
+                +"(__key, city, country, population) VALUES"
+                +"(1, 'London', 'United Kingdom', 9540576),"
+                +"(2, 'Manchester', 'United Kingdom', 2770434),"
+                +"(3, 'New York', 'United States', 19223191),"
+                +"(4, 'Los Angeles', 'United States', 3985520),"
+                +"(5, 'Istanbul', 'Türkiye', 15636243),"
+                +"(6, 'Ankara', 'Türkiye', 5309690),"
+                +"(7, 'Sao Paulo ', 'Brazil', 22429800)";
 
         try{
             SqlResult result = client.getSql().execute(insertQuery);
@@ -102,34 +105,38 @@ public class ClientWithSsl {
             System.out.println(ex.getMessage());
         }
 
-        // Let's also add a user as object.
-        IMap<Integer, User> map = client.getMap("users");
+        // Let's also add a city as object.
+        IMap<Integer, City> map = client.getMap("cities");
 
-        User u = new User();
-        u.setName("Alice");
-        u.setCountry("Brazil");
-        map.putAsync(6, u);
+        City c = new City("Brazil", "Rio de Janeiro", 13634274);
+        map.putAsync(8, c);
 
         System.out.print("OK.");
     }
 
-    private static void fetchUsersWithSQL(SqlService sqlService) {
+    private static void fetchCitiesWithSQL(SqlService sqlService) {
 
-        System.out.println("\nFetching users via SQL...");
+        System.out.println("\nFetching cities via SQL...");
 
-        try(SqlResult result = sqlService.execute("SELECT __key, this FROM users")) {
+        try(SqlResult result = sqlService.execute("SELECT __key, this FROM cities")) {
 
-            System.out.println("--Results of 'SELECT __key, this FROM users'");
+            System.out.println("--Results of 'SELECT __key, this FROM cities'");
 
+            System.out.printf("%4s | %20s | %20s | %15s |%n", "id", "country", "city", "population");
             for (SqlRow row : result) {
                 int id = row.getObject("__key");
-                User u = row.getObject("this");
-                System.out.println("Id:" + id + "\tName:" + u.getName() + "\tCountry:" + u.getCountry());
+                City c = row.getObject("this");
+                System.out.printf("%4s | %20s | %20s | %15s |%n",
+                        id,
+                        c.getCountry(),
+                        c.getCity(),
+                        c.getPopulation()
+                );
             }
         }
 
         System.out.println("\n!! Hint !! You can execute your SQL queries on your Viridian cluster over the management center." +
-                "\n 1. Go to 'Management Center' of your Hazelcast Viridian cluster. \n 2. Open the 'SQL Browser'. \n 3. Try to execute 'SELECT * FROM users'.\n");
+                "\n 1. Go to 'Management Center' of your Hazelcast Viridian cluster. \n 2. Open the 'SQL Browser'. \n 3. Try to execute 'SELECT * FROM cities'.\n");
     }
 
     /**
