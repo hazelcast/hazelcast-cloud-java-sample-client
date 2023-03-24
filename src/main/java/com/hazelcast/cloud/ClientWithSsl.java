@@ -1,6 +1,7 @@
 package com.hazelcast.cloud;
 
 import java.util.Properties;
+
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cloud.jobs.UpperCaseFunction;
@@ -21,28 +22,28 @@ import com.hazelcast.sql.SqlService;
 /**
  * This is boilerplate application that configures client to connect Hazelcast Viridian cluster.
  * <p>
- * See: <a href="https://docs.hazelcast.com/cloud/java-client">https://docs.hazelcast.com/cloud/java-client</a>
+ * See: <a href="https://docs.hazelcast.com/cloud/get-started">https://docs.hazelcast.com/cloud/get-started</a>
  */
 public class ClientWithSsl {
 
     public static void main(String[] args) throws Exception {
-
         // Configure the client.
         ClassLoader classLoader = ClientWithSsl.class.getClassLoader();
         Properties props = new Properties();
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
-        props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
+        props.setProperty("javax.net.ssl.keyStorePassword", "4a45baa982f");
         props.setProperty("javax.net.ssl.trustStore",
                 classLoader.getResource("client.truststore").toURI().getPath());
-        props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
+        props.setProperty("javax.net.ssl.trustStorePassword", "4a45baa982f");
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
+                .setDiscoveryToken("hUboJLBwg3arpeojaVHsrTVpF3D2har395cQlrRP02ngsGN1Gm")
                 .setEnabled(true);
-        config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
-        config.setClusterName("YOUR_CLUSTER_NAME");
+        config.setProperty("hazelcast.client.cloud.url", "https://api.viridian.hazelcast.com");
+        config.setClusterName("pr-16gd75ak");
 
+        // Register serializer of the City.
         config.getSerializationConfig().getCompactSerializationConfig().addSerializer(new CitySerializer());
 
         System.out.println("Connect Hazelcast Viridian with TLS");
@@ -54,72 +55,72 @@ public class ClientWithSsl {
             insertCities(client);
             fetchCities(client.getSql());
             jetJobExample(client);
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
-        }
-        finally {
+        } finally {
             client.shutdown();
         }
     }
 
     private static void createMapping(SqlService sqlService) {
         // See: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps#compact-objects
-        System.out.println("Creating mapping for cities...");
+        System.out.print("\nCreating mapping for cities...");
 
         String mappingSql = ""
-            + "CREATE OR REPLACE MAPPING cities("
-            + "     __key INT,"
-            + "     country VARCHAR,"
-            + "     city VARCHAR,"
-            + "     population INT"
-            + ") TYPE IMap"
-            + " OPTIONS ("
-            + "     'keyFormat' = 'int',"
-            + "     'valueFormat' = 'compact',"
-            + "     'valueCompactTypeName' = 'city'"
-            + " )";
+                + "CREATE OR REPLACE MAPPING cities("
+                + "     __key INT,"
+                + "     country VARCHAR,"
+                + "     city VARCHAR,"
+                + "     population INT"
+                + ") TYPE IMap"
+                + " OPTIONS ("
+                + "     'keyFormat' = 'int',"
+                + "     'valueFormat' = 'compact',"
+                + "     'valueCompactTypeName' = 'city'"
+                + " )";
 
         try (SqlResult ignored = sqlService.execute(mappingSql)) {
             System.out.print("OK.");
+        } catch (Exception ex) {
+            System.out.print("FAILED. " + ex.getMessage());
         }
     }
 
-    private static void insertCities(HazelcastInstance client){
+    private static void insertCities(HazelcastInstance client) {
         System.out.print("\nInserting cities into 'cities' map...");
 
         String insertQuery = "INSERT INTO cities "
-                +"(__key, city, country, population) VALUES"
-                +"(1, 'London', 'United Kingdom', 9540576),"
-                +"(2, 'Manchester', 'United Kingdom', 2770434),"
-                +"(3, 'New York', 'United States', 19223191),"
-                +"(4, 'Los Angeles', 'United States', 3985520),"
-                +"(5, 'Istanbul', 'Türkiye', 15636243),"
-                +"(6, 'Ankara', 'Türkiye', 5309690),"
-                +"(7, 'Sao Paulo ', 'Brazil', 22429800)";
+                + "(__key, city, country, population) VALUES"
+                + "(1, 'London', 'United Kingdom', 9540576),"
+                + "(2, 'Manchester', 'United Kingdom', 2770434),"
+                + "(3, 'New York', 'United States', 19223191),"
+                + "(4, 'Los Angeles', 'United States', 3985520),"
+                + "(5, 'Istanbul', 'Türkiye', 15636243),"
+                + "(6, 'Ankara', 'Türkiye', 5309690),"
+                + "(7, 'Sao Paulo ', 'Brazil', 22429800)";
 
-        try{
+        try {
             SqlResult result = client.getSql().execute(insertQuery);
-            System.out.print("Inserted...");
-        }catch (Exception ex){
-            System.out.println(ex.getMessage());
+            System.out.print("Insert...OK...");
+        } catch (Exception ex) {
+            System.out.print("FAILED. " + ex.getMessage());
         }
 
         // Let's also add a city as object.
         IMap<Integer, City> map = client.getMap("cities");
 
         City c = new City("Brazil", "Rio de Janeiro", 13634274);
-        map.putAsync(8, c);
-
+        System.out.print("\nPutting a city into 'cities' map...");
+        map.put(8, c);
         System.out.print("OK.");
     }
 
-    private static void fetchCitiesWithSQL(SqlService sqlService) {
+    private static void fetchCities(SqlService sqlService) {
 
-        System.out.println("\nFetching cities via SQL...");
+        System.out.print("\nFetching cities via SQL...");
 
-        try(SqlResult result = sqlService.execute("SELECT __key, this FROM cities")) {
-
+        try (SqlResult result = sqlService.execute("SELECT __key, this FROM cities")) {
+            System.out.print("OK.\n");
             System.out.println("--Results of 'SELECT __key, this FROM cities'");
 
             System.out.printf("%4s | %20s | %20s | %15s |%n", "id", "country", "city", "population");
@@ -133,6 +134,8 @@ public class ClientWithSsl {
                         c.getPopulation()
                 );
             }
+        } catch (Exception ex) {
+            System.out.print("FAILED. " + ex.getMessage());
         }
 
         System.out.println("\n!! Hint !! You can execute your SQL queries on your Viridian cluster over the management center." +
@@ -150,21 +153,20 @@ public class ClientWithSsl {
         System.out.println("Submitting Jet job");
 
         BatchSource<String> items = TestSources.items(
-            "United States", "Türkiye", "United Kingdom", "Poland", "Ukraine"
+                "United States", "Türkiye", "United Kingdom", "Poland", "Ukraine"
         );
 
         Pipeline pipeline = Pipeline.create()
-            .readFrom(items)
-            .map(new UpperCaseFunction())
-            .writeTo(Sinks.logger()) // Results will be visible on the server logs.
-            .getPipeline();
+                .readFrom(items)
+                .map(new UpperCaseFunction())
+                .writeTo(Sinks.logger()) // Results will be visible on the server logs.
+                .getPipeline();
 
         JobConfig jobConfig = new JobConfig()
-            .addClass(UpperCaseFunction.class);
+                .addClass(UpperCaseFunction.class);
 
         client.getJet().newJob(pipeline, jobConfig);
 
         System.out.println("Jet job submitted. \nYou can see the results in the logs. Go to your Viridian cluster, and click the 'Logs'.");
     }
-
 }
