@@ -52,7 +52,7 @@ public class ClientWithSsl {
         try {
             createMapping(client.getSql());
             insertCities(client);
-            fetchCitiesWithSQL(client.getSql());
+            fetchCities(client.getSql());
             jetJobExample(client);
         }
         catch (Exception ex) {
