@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2008-2023, Hazelcast, Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.hazelcast.cloud;
 
 import java.util.Properties;
@@ -31,17 +47,17 @@ public class ClientWithSsl {
         ClassLoader classLoader = ClientWithSsl.class.getClassLoader();
         Properties props = new Properties();
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
-        props.setProperty("javax.net.ssl.keyStorePassword", "4a45baa982f");
+        props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
         props.setProperty("javax.net.ssl.trustStore",
                 classLoader.getResource("client.truststore").toURI().getPath());
-        props.setProperty("javax.net.ssl.trustStorePassword", "4a45baa982f");
+        props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("hUboJLBwg3arpeojaVHsrTVpF3D2har395cQlrRP02ngsGN1Gm")
+                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
                 .setEnabled(true);
-        config.setProperty("hazelcast.client.cloud.url", "https://api.viridian.hazelcast.com");
-        config.setClusterName("pr-16gd75ak");
+        config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
+        config.setClusterName("YOUR_CLUSTER_NAME");
 
         // Register serializer of the City.
         config.getSerializationConfig().getCompactSerializationConfig().addSerializer(new CitySerializer());
