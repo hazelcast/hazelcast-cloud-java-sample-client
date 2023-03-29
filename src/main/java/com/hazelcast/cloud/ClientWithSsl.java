@@ -117,7 +117,7 @@ public class ClientWithSsl {
 
         try {
             SqlResult result = client.getSql().execute(insertQuery);
-            System.out.print("Insert...OK...");
+            System.out.print("Insert...OK.");
         } catch (Exception ex) {
             System.out.print("FAILED. " + ex.getMessage());
         }
