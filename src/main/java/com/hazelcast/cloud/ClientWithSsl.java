@@ -16,6 +16,7 @@
 
 package com.hazelcast.cloud;
 
+import java.sql.*;
 import java.util.Properties;
 
 import com.hazelcast.client.HazelcastClient;
@@ -70,11 +71,30 @@ public class ClientWithSsl {
             createMapping(client.getSql());
             insertCities(client);
             fetchCities(client.getSql());
+            // fetchCitiesThroughJdbc(client, props);
             jetJobExample(client);
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
             client.shutdown();
+        }
+    }
+
+    private static void fetchCitiesThroughJdbc(ClientConfig config, Properties tlsProperties) {
+        String jdbcUrl = String.format("jdbc:hazelcast://%s/?discoveryToken=%s&cloudUrl=%s&sslEnabled=true",
+                config.getClusterName(),
+                config.getNetworkConfig().getCloudConfig().getDiscoveryToken(),
+                config.getProperties().getProperty("hazelcast.client.cloud.url"));
+        try (Connection connection = DriverManager.getConnection(jdbcUrl, tlsProperties);
+             Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT this FROM cities")) {
+            System.out.println("--Fetching the results through JDBC interface:");
+            while (rs.next()) {
+                City c = (City) rs.getObject("this");
+                System.out.println(String.format("City: %s, Population: %s", c.getCity(), c.getPopulation()));
+            }
+        } catch (Exception e) {
+            System.out.println("An error occurred while using the JDBC driver: " + e.getMessage());
         }
     }
 
