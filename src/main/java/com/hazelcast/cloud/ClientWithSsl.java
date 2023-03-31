@@ -71,7 +71,6 @@ public class ClientWithSsl {
             createMapping(client.getSql());
             insertCities(client);
             fetchCities(client.getSql());
-            // fetchCitiesThroughJdbc(client, props);
             jetJobExample(client);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -80,25 +79,7 @@ public class ClientWithSsl {
         }
     }
 
-    private static void fetchCitiesThroughJdbc(ClientConfig config, Properties tlsProperties) {
-        String jdbcUrl = String.format("jdbc:hazelcast://%s/?discoveryToken=%s&cloudUrl=%s&sslEnabled=true",
-                config.getClusterName(),
-                config.getNetworkConfig().getCloudConfig().getDiscoveryToken(),
-                config.getProperties().getProperty("hazelcast.client.cloud.url"));
-        try (Connection connection = DriverManager.getConnection(jdbcUrl, tlsProperties);
-             Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery("SELECT this FROM cities")) {
-            System.out.println("--Fetching the results through JDBC interface:");
-            while (rs.next()) {
-                City c = (City) rs.getObject("this");
-                System.out.println(String.format("City: %s, Population: %s", c.getCity(), c.getPopulation()));
-            }
-        } catch (Exception e) {
-            System.out.println("An error occurred while using the JDBC driver: " + e.getMessage());
-        }
-    }
-
-    private static void createMapping(SqlService sqlService) {
+    protected static void createMapping(SqlService sqlService) {
         // See: https://docs.hazelcast.com/hazelcast/latest/sql/mapping-to-maps#compact-objects
         System.out.print("\nCreating mapping for cities...");
 
@@ -122,7 +103,7 @@ public class ClientWithSsl {
         }
     }
 
-    private static void insertCities(HazelcastInstance client) {
+    protected static void insertCities(HazelcastInstance client) {
         System.out.print("\nInserting cities into 'cities' map...");
 
         String insertQuery = "INSERT INTO cities "
