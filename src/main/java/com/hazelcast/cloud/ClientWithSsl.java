@@ -16,7 +16,6 @@
 
 package com.hazelcast.cloud;
 
-import java.sql.*;
 import java.util.Properties;
 
 import com.hazelcast.client.HazelcastClient;
