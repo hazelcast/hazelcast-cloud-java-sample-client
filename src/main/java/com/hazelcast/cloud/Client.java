@@ -52,8 +52,7 @@ public class Client {
             insertCities(client);
             fetchCities(client.getSql());
             jetJobExample(client);
-        }
-        finally {
+        } finally {
             client.shutdown();
         }
     }
@@ -83,9 +82,13 @@ public class Client {
     }
 
     private static void insertCities(HazelcastInstance client) {
-        System.out.print("\nInserting cities into 'cities' map...");
+        try {
+            System.out.print("\nCleaning up the 'cities' map...");
+            client.getSql().execute("DELETE FROM cities");
+            System.out.print("Cleanup...OK.");
+            System.out.print("\nInserting cities into 'cities' map...");
 
-        String insertQuery = "INSERT INTO cities "
+            String insertQuery = "INSERT INTO cities "
                 + "(__key, city, country, population) VALUES"
                 + "(1, 'London', 'United Kingdom', 9540576),"
                 + "(2, 'Manchester', 'United Kingdom', 2770434),"
@@ -95,7 +98,6 @@ public class Client {
                 + "(6, 'Ankara', 'Türkiye', 5309690),"
                 + "(7, 'Sao Paulo ', 'Brazil', 22429800)";
 
-        try {
             SqlResult result = client.getSql().execute(insertQuery);
             System.out.print("Insert...OK...");
         } catch (Exception ex) {
