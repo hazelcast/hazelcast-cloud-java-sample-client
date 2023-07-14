@@ -49,13 +49,13 @@ public class ClientWithSsl {
         props.setProperty("javax.net.ssl.keyStore", classLoader.getResource("client.keystore").toURI().getPath());
         props.setProperty("javax.net.ssl.keyStorePassword", "YOUR_SSL_PASSWORD");
         props.setProperty("javax.net.ssl.trustStore",
-                classLoader.getResource("client.truststore").toURI().getPath());
+            classLoader.getResource("client.truststore").toURI().getPath());
         props.setProperty("javax.net.ssl.trustStorePassword", "YOUR_SSL_PASSWORD");
         ClientConfig config = new ClientConfig();
         config.getNetworkConfig().setSSLConfig(new SSLConfig().setEnabled(true).setProperties(props));
         config.getNetworkConfig().getCloudConfig()
-                .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
-                .setEnabled(true);
+            .setDiscoveryToken("YOUR_CLUSTER_DISCOVERY_TOKEN")
+            .setEnabled(true);
         config.setProperty("hazelcast.client.cloud.url", "YOUR_DISCOVERY_URL");
         config.setClusterName("YOUR_CLUSTER_NAME");
 
@@ -101,9 +101,13 @@ public class ClientWithSsl {
     }
 
     protected static void insertCities(HazelcastInstance client) {
-        System.out.print("\nInserting cities into 'cities' map...");
+        try {
+            System.out.print("\nCleaning up the 'cities' map...");
+            client.getSql().execute("DELETE FROM cities");
+            System.out.print("Cleanup...OK.");
+            System.out.print("\nInserting cities into 'cities' map...");
 
-        String insertQuery = "INSERT INTO cities "
+            String insertQuery = "INSERT INTO cities "
                 + "(__key, city, country, population) VALUES"
                 + "(1, 'London', 'United Kingdom', 9540576),"
                 + "(2, 'Manchester', 'United Kingdom', 2770434),"
@@ -113,7 +117,6 @@ public class ClientWithSsl {
                 + "(6, 'Ankara', 'Türkiye', 5309690),"
                 + "(7, 'Sao Paulo ', 'Brazil', 22429800)";
 
-        try {
             SqlResult result = client.getSql().execute(insertQuery);
             System.out.print("Insert...OK.");
         } catch (Exception ex) {
