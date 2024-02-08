@@ -36,7 +36,7 @@ import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlService;
 
 /**
- * This is boilerplate application that configures client to connect Hazelcast Viridian cluster.
+ * This is boilerplate application that configures client to connect Hazelcast Cloud cluster.
  * <p>
  * See: <a href="https://docs.hazelcast.com/cloud/get-started">https://docs.hazelcast.com/cloud/get-started</a>
  */
@@ -62,7 +62,7 @@ public class ClientWithSsl {
         // Register serializer of the City.
         config.getSerializationConfig().getCompactSerializationConfig().addSerializer(new CitySerializer());
 
-        System.out.println("Connect Hazelcast Viridian with TLS");
+        System.out.println("Connect Hazelcast Cloud with TLS");
         HazelcastInstance client = HazelcastClient.newHazelcastClient(config);
         System.out.println("Connection Successful!");
 
@@ -156,7 +156,7 @@ public class ClientWithSsl {
         }
 
         System.out.println("\n" +
-            "!! Hint !! You can execute your SQL queries on your Viridian cluster using the \"SQL Broswer\" UI.\n" +
+            "!! Hint !! You can execute your SQL queries on your Hazelcast Cloud cluster using the \"SQL Broswer\" UI.\n" +
             "1. Start one of the preloaded demos in your Trial Experience.\n" +
             "2. This will open the 'SQL Browser'.\n" +
             "3. Add a new Tab.\n" +
@@ -189,6 +189,6 @@ public class ClientWithSsl {
 
         client.getJet().newJob(pipeline, jobConfig);
 
-        System.out.println("Jet job submitted. \nYou can see the results in the logs (go to your cluster page in the Viridian console and click the 'Logs' link) or in Management Center - Jobs section (also available through the Viridian cluster page).");
+        System.out.println("Jet job submitted. \nYou can see the results in the logs (go to your cluster page in the Hazelcast Cloud console and click the 'Logs' link) or in Management Center - Jobs section (also available through the Hazelcast Cloud cluster page).");
     }
 }

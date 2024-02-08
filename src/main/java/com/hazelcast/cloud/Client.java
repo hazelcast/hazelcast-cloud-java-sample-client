@@ -137,7 +137,7 @@ public class Client {
         }
 
         System.out.println("\n" +
-            "!! Hint !! You can execute your SQL queries on your Viridian cluster using the \"SQL Broswer\" UI.\n" +
+            "!! Hint !! You can execute your SQL queries on your Hazelcast Cloud cluster using the \"SQL Broswer\" UI.\n" +
             "1. Start one of the preloaded demos in your Trial Experience.\n" +
             "2. This will open the 'SQL Browser'.\n" +
             "3. Add a new Tab.\n" +
@@ -170,6 +170,6 @@ public class Client {
 
         client.getJet().newJob(pipeline, jobConfig);
 
-        System.out.println("Jet job submitted. \nYou can see the results in the logs. Go to your Viridian cluster, and click the 'Logs'.");
+        System.out.println("Jet job submitted. \nYou can see the results in the logs. Go to your Hazelcast Cloud cluster, and click the 'Logs'.");
     }
 }
