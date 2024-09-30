@@ -16,15 +16,30 @@
 
 package com.hazelcast.cloud;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cloud.jobs.UpperCaseFunction;
 import com.hazelcast.cloud.model.City;
 import com.hazelcast.cloud.model.CitySerializer;
+import com.hazelcast.cloud.model.MovieMetadata;
 import com.hazelcast.config.SSLConfig;
+import com.hazelcast.config.vector.Metric;
+import com.hazelcast.config.vector.VectorCollectionConfig;
+import com.hazelcast.config.vector.VectorIndexConfig;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.Pipelining;
+import com.hazelcast.internal.util.Timer;
 import com.hazelcast.jet.config.JobConfig;
 import com.hazelcast.jet.pipeline.BatchSource;
 import com.hazelcast.jet.pipeline.Pipeline;
@@ -34,6 +49,11 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.sql.SqlResult;
 import com.hazelcast.sql.SqlRow;
 import com.hazelcast.sql.SqlService;
+import com.hazelcast.vector.SearchOptions;
+import com.hazelcast.vector.SearchResult;
+import com.hazelcast.vector.VectorCollection;
+import com.hazelcast.vector.VectorDocument;
+import com.hazelcast.vector.VectorValues;
 
 /**
  * This is boilerplate application that configures client to connect Hazelcast Cloud cluster.
@@ -71,6 +91,7 @@ public class ClientWithSsl {
             insertCities(client);
             fetchCities(client.getSql());
             jetJobExample(client);
+            vectorSearchExample(client);
         } finally {
             client.shutdown();
         }
@@ -191,4 +212,76 @@ public class ClientWithSsl {
 
         System.out.println("Jet job submitted. \nYou can see the results in the logs (go to your cluster page in the Hazelcast Cloud console and click the 'Logs' link) or in Management Center - Jobs section (also available through the Hazelcast Cloud cluster page).");
     }
+
+    private static void vectorSearchExample(HazelcastInstance client) throws Exception {
+        VectorCollectionConfig vcc = new VectorCollectionConfig("movies")
+            .addVectorIndexConfig(new VectorIndexConfig("plot-summary-index", Metric.COSINE, 384,
+                40, 100, false));
+        VectorCollection<String, MovieMetadata> moviesVectorCollection = VectorCollection.getCollection(client, vcc);
+
+        EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        generateEmbeddingsFromPlotSummaries(embeddingModel, moviesVectorCollection);
+
+        var searchInput = List.of("stars and planets", "cats", "robots");
+        for (String search : searchInput) {
+            float[] query = embeddingModel.embed(search).content().vector();
+
+            // find & output top 10 similar matches of plot summary to given text
+            var results = moviesVectorCollection.searchAsync(VectorValues.of(query), SearchOptions.of(10, true, false))
+                .toCompletableFuture().join();
+            System.out.println("Found those results for the request [" + search + "] :");
+            int index = 1;
+            for (var it = results.results(); it.hasNext(); ) {
+                SearchResult<String, MovieMetadata> result = it.next();
+                String plotSummarySubstring = result.getValue().getPlotSummary();
+                plotSummarySubstring = plotSummarySubstring.substring(0, Math.min(plotSummarySubstring.length(), 130));
+                System.out.printf("%d) title: \"%s\"\trelease date: \"%s\"\tplot: \"%s..\"%n\n", index++,
+                    result.getValue().getName(), result.getValue().getReleaseDate(), plotSummarySubstring);
+            }
+        }
+    }
+
+    /**
+     * Reads the movie & plot summary data and generates embeddings with given model.
+     */
+    public static void generateEmbeddingsFromPlotSummaries(EmbeddingModel embeddingModel, VectorCollection<String, MovieMetadata> movies)
+        throws Exception {
+        Pipelining<Void> putPipeline = new Pipelining<>(10000);
+        Map<String, MovieMetadata> movieIdToMeta = new ConcurrentHashMap<>();
+        Map<String, String> movieIdToPlotSummary = new ConcurrentHashMap<>();
+
+        Scanner scanner = new Scanner(ClassLoader.getSystemResourceAsStream("/plot_summaries.txt"));
+        Pattern pattern = Pattern.compile("(\\d+)\t(.*)\n");
+        scanner.findAll(pattern)
+            .forEach(matchResult -> {
+                String id = matchResult.group(1);
+                String plot = matchResult.group(2);
+                movieIdToPlotSummary.put(id, plot);
+            });
+        scanner = new Scanner(ClassLoader.getSystemResourceAsStream("/movie.metadata.tsv"));
+        pattern = Pattern.compile("(\\d+)\t[^\t]*\t([^\t]*)\t([^\t]*)\t.*\n");
+        scanner.findAll(pattern)
+            .forEach(matchResult -> {
+                String id = matchResult.group(1);
+                String name = matchResult.group(2);
+                String releaseDate = matchResult.group(3);
+                movieIdToMeta.put(id, new MovieMetadata(name, releaseDate, movieIdToPlotSummary.get(id)));
+            });
+        long start = Timer.nanos();
+        movieIdToPlotSummary.entrySet().parallelStream().forEach(entry -> {
+            String id = entry.getKey();
+            Embedding embedding = embeddingModel.embed(entry.getValue()).content();
+            VectorDocument<MovieMetadata> vectorDocument = VectorDocument.of(movieIdToMeta.get(id), VectorValues.of(embedding.vector()));
+            try {
+                putPipeline.add(movies.setAsync(id, vectorDocument));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        System.out.println("Generating embeddings for " + movieIdToPlotSummary.size() + " plot summaries took " + Timer.secondsElapsed(start) + " seconds");
+
+        // wait for all pipeline operations to complete
+        putPipeline.results();
+    }
+
 }
